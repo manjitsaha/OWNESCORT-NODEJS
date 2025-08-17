@@ -439,8 +439,8 @@ const toggleAvailability = asyncHandler(async (req, res) => {
   user.isAvailable = !user.isAvailable;
   await user.save();
   res.json({
-      message: `Escort availability toggled to ${user.isAvailable ? 'available' : 'unavailable'}`,
-      isAvailable: user.isAvailable
+    message: `Escort availability toggled to ${user.isAvailable ? 'available' : 'unavailable'}`,
+    isAvailable: user.isAvailable
   });
 });
 
@@ -490,17 +490,17 @@ const updateEscortRates = asyncHandler(async (req, res) => {
   }
 
   if (brokerId !== undefined) {
-      if (currentUser.role === 'Admin' || currentUser.role === 'Broker') {
-          const newBroker = await User.findById(brokerId);
-          if (!newBroker || newBroker.role !== 'Broker') {
-              res.status(400);
-              throw new Error('Invalid broker ID or user is not a Broker.');
-          }
-          escort.broker = newBroker._id;
-      } else {
-          res.status(403);
-          throw new Error('Only Admin or Broker can assign/reassign an escort\'s broker.');
+    if (currentUser.role === 'Admin' || currentUser.role === 'Broker') {
+      const newBroker = await User.findById(brokerId);
+      if (!newBroker || newBroker.role !== 'Broker') {
+        res.status(400);
+        throw new Error('Invalid broker ID or user is not a Broker.');
       }
+      escort.broker = newBroker._id;
+    } else {
+      res.status(403);
+      throw new Error('Only Admin or Broker can assign/reassign an escort\'s broker.');
+    }
   }
 
   await escort.save();
@@ -655,6 +655,28 @@ const updateEscortLocation = asyncHandler(async (req, res) => {
   });
 });
 
+const uploadEscortGallery = asyncHandler(async (req, res) => {
+  try {
+    const currentUser = req.user;
+    const user = await User.findById(currentUser._id);
+
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const fileNames = req.files.map(file => file.filename);
+
+    user.profileImages = [...user.profileImages, ...fileNames];
+    await user.save();
+
+    res.status(200).json({
+      message: 'Images uploaded successfully',
+      profileImages: user.profileImages,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // NEW: Add images/videos to escort profile
 // @desc    Add media (images/videos) to an escort's profile
 // @route   POST /api/escorts/:id/media
@@ -795,6 +817,16 @@ const removeEscortMedia = asyncHandler(async (req, res) => {
   });
 });
 
+const getProfile = asyncHandler(async (req, res) => {
+  const currentUser = req.user;
+  const user = await User.findById(currentUser._id);
+
+  res.status(200).json({
+    user
+  });
+
+});
+
 
 module.exports = {
   getAvailableEscorts,
@@ -804,5 +836,7 @@ module.exports = {
   updateEscortLocation,
   addEscortMedia, // Export new function
   removeEscortMedia, // Export new function
-  validate
+  validate,
+  uploadEscortGallery,
+  getProfile
 };

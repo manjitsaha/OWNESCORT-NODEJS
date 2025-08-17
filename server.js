@@ -1,90 +1,3 @@
-// const express = require('express');
-// const dotenv = require('dotenv');
-
-// dotenv.config();
-
-// const http = require('http'); // NEW: Import http module
-// const { Server } = require('socket.io'); // NEW: Import Server from socket.io
-
-// const connectDB = require('./config/db');
-// const firebaseAdmin = require('./config/firebase');
-// const authRoutes = require('./routes/authRoutes');
-// const escortRoutes = require('./routes/escortRoutes');
-// const bookingRoutes = require('./routes/bookingRoutes');
-// const notificationRoutes = require('./routes/notificationRoutes');
-// const reviewRoutes = require('./routes/reviewRoutes');
-// const availabilityRoutes = require('./routes/availabilityRoutes');
-// const { notFound, errorHandler } = require('./middlewares/errorMiddleware');
-// const helmet = require('helmet');
-// const cors = require('cors');
-// const rateLimit = require('express-rate-limit');
-
-
-
-// connectDB(); // Connect to MongoDB
-
-// const app = express();
-// const server = http.createServer(app); // NEW: Create HTTP server
-
-// // Configure Socket.IO
-// const io = new Server(server, {
-//   cors: {
-//     origin: "*", // Allow all origins for development. Restrict in production.
-//     methods: ["GET", "POST", "PUT", "DELETE"]
-//   }
-// });
-
-// // Security Middlewares for Express
-// app.use(express.json({ limit: '10kb' }));
-// app.use(helmet());
-// app.use(cors());
-
-// // Rate Limiting for authentication routes
-// const authLimiter = rateLimit({
-//   windowMs: 15 * 60 * 1000,
-//   max: 100,
-//   message: 'Too many login/signup attempts from this IP, please try again after 15 minutes',
-// });
-// app.use('/api/auth', authLimiter);
-
-// // Routes for REST API
-// app.use('/api/auth', authRoutes);
-// app.use('/api/escorts', escortRoutes);
-// app.use('/api/bookings', bookingRoutes);
-// app.use('/api/notifications', notificationRoutes);
-// app.use('/api/reviews', reviewRoutes);
-// app.use('/api/availability', availabilityRoutes);
-
-// // Socket.IO Connection Handling (basic setup, authentication will be added later)
-// io.on('connection', (socket) => {
-//   console.log(`User connected: ${socket.id}`);
-
-//   // Disconnect handler
-//   socket.on('disconnect', () => {
-//     console.log(`User disconnected: ${socket.id}`);
-//   });
-
-//   // Example: Listen for a test event
-//   socket.on('hello', (message) => {
-//     console.log(`Received from client ${socket.id}: ${message}`);
-//     socket.emit('response', `Server says: Got your message, ${message}!`);
-//   });
-// });
-
-
-// // Catch 404 and forward to error handler (for REST API)
-// app.use(notFound);
-
-// // Error handling middleware (should be last for REST API)
-// app.use(errorHandler);
-
-// const PORT = process.env.PORT || 5000;
-
-// // NEW: Listen on the HTTP server, not the Express app directly
-// server.listen(PORT, () => {
-//   console.log(`Server running on port ${PORT}`);
-// });
-
 const express = require('express');
 const dotenv = require('dotenv');
 
@@ -111,6 +24,8 @@ const rateLimit = require('express-rate-limit');
 const Message = require('./models/Message');
 const Booking = require('./models/Booking');
 const swaggerDocs = require("./swagger");
+const path = require('path');
+
 
 
 connectDB(); // Connect to MongoDB
@@ -348,6 +263,7 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 swaggerDocs(app, PORT);
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
