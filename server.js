@@ -92,8 +92,8 @@ dotenv.config();
 
 const http = require('http');
 const { Server } = require('socket.io');
-const jwt = require('jsonwebtoken'); 
-const User = require('./models/User'); 
+const jwt = require('jsonwebtoken');
+const User = require('./models/User');
 
 const connectDB = require('./config/db');
 const firebaseAdmin = require('./config/firebase');
@@ -108,9 +108,10 @@ const { notFound, errorHandler } = require('./middlewares/errorMiddleware');
 const helmet = require('helmet');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
-
 const Message = require('./models/Message');
 const Booking = require('./models/Booking');
+const swaggerDocs = require("./swagger");
+
 
 connectDB(); // Connect to MongoDB
 
@@ -262,7 +263,7 @@ io.on('connection', (socket) => {
 
       // Populate sender details for the emitted message
       const populatedMessage = await Message.findById(message._id)
-                                    .populate('sender', 'name role email'); // Populate only essential sender info
+        .populate('sender', 'name role email'); // Populate only essential sender info
 
       // Emit message to all clients in the room (including sender)
       io.to(bookingId).emit('newMessage', {
@@ -346,6 +347,7 @@ app.use(notFound);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
+swaggerDocs(app, PORT);
 
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

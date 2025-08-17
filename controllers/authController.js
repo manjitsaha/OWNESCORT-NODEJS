@@ -23,7 +23,7 @@ const validate = (req, res, next) => {
 
 // Helper function to generate a numeric OTP
 const generateNumericOtp = () => {
-    return Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+  return Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
 };
 
 
@@ -36,7 +36,7 @@ const registerUser = asyncHandler(async (req, res) => {
   const userExists = await User.findOne({ email }); // Check by email only for now
 
   if (userExists) {
-    res.status(400);
+    res.status(400).json({ message: 'User already exists with this email.' });
     throw new Error('User already exists with this email.');
   }
 
@@ -56,7 +56,7 @@ const registerUser = asyncHandler(async (req, res) => {
       token: generateToken(user._id),
     });
   } else {
-    res.status(400);
+    res.status(403).json({ message: 'Invalid user data provided.' });
     throw new Error('Invalid user data provided.');
   }
 });
