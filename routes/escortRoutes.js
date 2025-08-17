@@ -12,7 +12,7 @@ const {
   removeEscortMedia, // Import new function
   validate,
   uploadEscortGallery,
-  getProfile
+  getProfile, favouriteUnfavouriteEscort
 } = require('../controllers/escortController');
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 
@@ -21,6 +21,8 @@ const router = express.Router();
 // Get available escorts (supports filtering by name, special service, and geospatial location)
 router.get(
   '/available',
+  protect,
+  authorizeRoles(['Customer']),
   [
     query('specialService')
       .optional()
@@ -93,6 +95,14 @@ router.put(
   ],
   validate,
   updateEscortLocation
+);
+
+router.put(
+  '/favourite',
+  protect,
+  authorizeRoles(['Customer']),
+  validate,
+  favouriteUnfavouriteEscort
 );
 
 router.post(

@@ -367,32 +367,44 @@ const getAvailableEscorts = asyncHandler(async (req, res) => {
   const longitude = parseFloat(req.query.longitude);
   const maxDistance = parseFloat(req.query.maxDistance) || 10000; // Default 10km
 
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized. User not logged in" });
+  }
   const query = {
-    role: 'Escort',
-    // isAvailable: true, // Re-add this if you decide to filter by availability by default
+    role: "Escort",
   };
 
   if (name) {
-    query.name = { $regex: name, $options: 'i' };
+    query.name = { $regex: name, $options: "i" };
   }
 
   if (specialService) {
-    const allowedServices = ['private_party', 'pool_party', 'rave_party', 'weekend_party', 'clubbing'];
+    const allowedServices = [
+      "private_party",
+      "pool_party",
+      "rave_party",
+      "weekend_party",
+      "clubbing",
+    ];
     if (!allowedServices.includes(specialService)) {
       res.status(400);
-      throw new Error(`Invalid special service filter: ${specialService}. Allowed values are: ${allowedServices.join(', ')}`);
+      throw new Error(
+        `Invalid special service filter: ${specialService}. Allowed values are: ${allowedServices.join(
+          ", "
+        )}`
+      );
     }
-    query['specialServices.name'] = specialService;
+    query["specialServices.name"] = specialService;
   }
 
   // Geospatial query if latitude and longitude are provided
   if (!isNaN(latitude) && !isNaN(longitude)) {
-    query['location.coordinates'] = { $exists: true }; // Ensure escort has a location set
+    query["location.coordinates"] = { $exists: true }; // Ensure escort has a location set
 
     query.location = {
       $near: {
         $geometry: {
-          type: 'Point',
+          type: "Point",
           coordinates: [longitude, latitude], // MongoDB expects [longitude, latitude]
         },
         $maxDistance: maxDistance, // Distance in meters
@@ -403,19 +415,32 @@ const getAvailableEscorts = asyncHandler(async (req, res) => {
   // Sorting logic based on sortBy parameter
   let sortOptions = { createdAt: -1 }; // Default to recently added
 
-  if (sortBy === 'recently_added') {
+  if (sortBy === "recently_added") {
     sortOptions = { createdAt: -1 };
-  } else if (sortBy === 'highest_rated') {
+  } else if (sortBy === "highest_rated") {
     sortOptions = { averageRating: -1 };
     query.numReviews = { $gt: 0 }; // Only show highly rated if they have reviews
   }
 
   const count = await User.countDocuments(query);
-  const escorts = await User.find(query)
+  let escorts = await User.find(query)
     .limit(pageSize)
     .skip(pageSize * (page - 1))
     .sort(sortOptions)
-    .select('-password -fcmToken -resetPasswordToken -resetPasswordExpire'); // Exclude sensitive fields
+    .select(
+      "-password -fcmToken -resetPasswordToken -resetPasswordExpire"
+    ); // Exclude sensitive fields
+  const uu = req.user;
+  const currentUser = await User.findById(uu._id).select("favourites");
+  const favouritesSet = new Set(
+    currentUser.favourites.map((id) => id.toString())
+  );
+
+  escorts = escorts.map((escort) => {
+    const escortObj = escort.toObject();
+    escortObj.isFavourite = favouritesSet.has(escort._id.toString());
+    return escortObj;
+  });
 
   res.json({
     escorts,
@@ -424,6 +449,7 @@ const getAvailableEscorts = asyncHandler(async (req, res) => {
     total: count,
   });
 });
+
 
 // @desc    Toggle availability for logged-in escort
 // @route   PUT /api/escorts/availability
@@ -677,6 +703,31 @@ const uploadEscortGallery = asyncHandler(async (req, res) => {
   }
 });
 
+const favouriteUnfavouriteEscort = asyncHandler(async (req, res) => {
+  try {
+    const currentUser = req.user;
+    const escortId = req.query.escortId;
+    const user = await User.findById(currentUser._id);
+
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (user.favourites.includes(escortId)) {
+      user.favourites.pull(escortId);
+    } else {
+      user.favourites.push(escortId);
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      message: 'success',
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // NEW: Add images/videos to escort profile
 // @desc    Add media (images/videos) to an escort's profile
 // @route   POST /api/escorts/:id/media
@@ -838,5 +889,6 @@ module.exports = {
   removeEscortMedia, // Export new function
   validate,
   uploadEscortGallery,
-  getProfile
+  getProfile,
+  favouriteUnfavouriteEscort
 };

@@ -93,6 +93,10 @@ const userSchema = mongoose.Schema(
         index: '2dsphere',
       },
     },
+    favourites: {
+      type: [String],
+      default: [],
+    },
     // NEW FIELDS FOR MEDIA GALLERY
     profileImages: {
       type: [String],

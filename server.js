@@ -33,6 +33,9 @@ connectDB(); // Connect to MongoDB
 const app = express();
 const server = http.createServer(app);
 
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+
 // Configure Socket.IO
 const io = new Server(server, {
   cors: {
@@ -263,7 +266,6 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 swaggerDocs(app, PORT);
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
