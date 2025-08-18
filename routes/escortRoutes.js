@@ -12,7 +12,7 @@ const {
   removeEscortMedia, // Import new function
   validate,
   uploadEscortGallery,
-  getProfile, favouriteUnfavouriteEscort, updateProfile
+  getProfile, favouriteUnfavouriteEscort, updateProfile, getFavouriteEscorts
 } = require('../controllers/escortController');
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 
@@ -43,6 +43,15 @@ router.get(
   ],
   validate,
   getAvailableEscorts
+);
+
+router.get(
+  '/favouriteList',
+  protect,
+  authorizeRoles(['Customer']),
+
+  validate,
+  getFavouriteEscorts
 );
 
 // Escort can toggle their own availability

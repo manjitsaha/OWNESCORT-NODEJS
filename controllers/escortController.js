@@ -728,6 +728,62 @@ const favouriteUnfavouriteEscort = asyncHandler(async (req, res) => {
   }
 });
 
+const getFavouriteEscorts = asyncHandler(async (req, res) => {
+  const pageSize = parseInt(req.query.limit) || 10;
+  const page = parseInt(req.query.page) || 1;
+
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized. User not logged in" });
+  }
+
+  // Fetch current user's favourites
+  const currentUser = await User.findById(req.user._id).select("favourites");
+  if (!currentUser) {
+    return res.status(404).json({ message: "User not found" });
+  }
+
+  // Convert favourites into array of ObjectIds
+  const favouriteIds = currentUser.favourites || [];
+
+  if (favouriteIds.length === 0) {
+    return res.json({
+      escorts: [],
+      page,
+      pages: 0,
+      total: 0,
+    });
+  }
+
+  // Query escorts only from favourites
+  const query = {
+    _id: { $in: favouriteIds },
+    role: "Escort",
+  };
+
+  const count = await User.countDocuments(query);
+
+  let escorts = await User.find(query)
+    .limit(pageSize)
+    .skip(pageSize * (page - 1))
+    .sort({ createdAt: -1 }) // default sort (recently added)
+    .select("-password -fcmToken -resetPasswordToken -resetPasswordExpire");
+
+  // Mark each escort as favourite (always true here)
+  escorts = escorts.map((escort) => {
+    const escortObj = escort.toObject();
+    escortObj.isFavourite = true;
+    return escortObj;
+  });
+
+  res.json({
+    escorts,
+    page,
+    pages: Math.ceil(count / pageSize),
+    total: count,
+  });
+});
+
+
 const updateProfile = asyncHandler(async (req, res) => {
   try {
 
@@ -913,5 +969,5 @@ module.exports = {
   validate,
   uploadEscortGallery,
   getProfile,
-  favouriteUnfavouriteEscort, updateProfile
+  favouriteUnfavouriteEscort, updateProfile, getFavouriteEscorts
 };
