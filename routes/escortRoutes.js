@@ -12,7 +12,7 @@ const {
   removeEscortMedia, // Import new function
   validate,
   uploadEscortGallery,
-  getProfile, favouriteUnfavouriteEscort
+  getProfile, favouriteUnfavouriteEscort, updateProfile
 } = require('../controllers/escortController');
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 
@@ -103,6 +103,14 @@ router.put(
   authorizeRoles(['Customer']),
   validate,
   favouriteUnfavouriteEscort
+);
+
+router.put(
+  '/updateProfile',
+  protect,
+  authorizeRoles(['Customer', 'Escort', 'Broker', 'Admin']),
+  validate,
+  updateProfile
 );
 
 router.post(

@@ -23,6 +23,24 @@ const userSchema = mongoose.Schema(
       type: String,
       required: true,
     },
+    bio: {
+      type: String,
+    },
+    height: {
+      type: Number,
+    },
+    Weight: {
+      type: Number,
+    },
+    breast: {
+      type: Number,
+    },
+    waist: {
+      type: Number,
+    },
+    hips: {
+      type: Number,
+    },
     role: {
       type: String,
       required: true,

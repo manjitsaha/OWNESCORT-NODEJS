@@ -728,6 +728,29 @@ const favouriteUnfavouriteEscort = asyncHandler(async (req, res) => {
   }
 });
 
+const updateProfile = asyncHandler(async (req, res) => {
+  try {
+
+    const disallowedFields = ['password', 'role', 'resetPasswordToken', 'resetPasswordExpire'];
+    disallowedFields.forEach(field => delete req.body[field]);
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user._id,
+      { $set: req.body },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    res.json({
+      message: 'Profile updated successfully',
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error('Edit profile error:', error);
+    res.status(500).json({ message: error.message });
+  }
+
+});
+
 // NEW: Add images/videos to escort profile
 // @desc    Add media (images/videos) to an escort's profile
 // @route   POST /api/escorts/:id/media
@@ -890,5 +913,5 @@ module.exports = {
   validate,
   uploadEscortGallery,
   getProfile,
-  favouriteUnfavouriteEscort
+  favouriteUnfavouriteEscort, updateProfile
 };
