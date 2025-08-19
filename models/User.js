@@ -29,7 +29,7 @@ const userSchema = mongoose.Schema(
     height: {
       type: Number,
     },
-    Weight: {
+    weight: {
       type: Number,
     },
     breast: {

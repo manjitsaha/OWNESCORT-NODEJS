@@ -12,7 +12,11 @@ const {
   removeEscortMedia, // Import new function
   validate,
   uploadEscortGallery,
-  getProfile, favouriteUnfavouriteEscort, updateProfile, getFavouriteEscorts
+  getProfile,
+  favouriteUnfavouriteEscort,
+  updateProfile,
+  getFavouriteEscorts,
+  deleteEscortImage
 } = require('../controllers/escortController');
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 
@@ -137,6 +141,14 @@ router.post(
   ],
   validate,
   uploadEscortGallery
+);
+
+router.delete(
+  '/deleteImage',
+  protect,
+  authorizeRoles(['Escort']),
+  validate,
+  deleteEscortImage
 );
 // NEW ROUTE: Add media to escort profile
 router.post(

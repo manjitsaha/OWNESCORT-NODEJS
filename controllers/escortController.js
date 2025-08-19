@@ -703,6 +703,30 @@ const uploadEscortGallery = asyncHandler(async (req, res) => {
   }
 });
 
+
+const deleteEscortImage = asyncHandler(async (req, res) => {
+  try {
+    const currentUser = req.user;
+    const user = await User.findById(currentUser._id);
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const filename = req.params.fileName;
+
+    user.profileImages = user.profileImages.filter(img => img !== filename);
+    await user.save();
+
+    res.status(200).json({
+      message: "Image deleted successfully",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
+
 const favouriteUnfavouriteEscort = asyncHandler(async (req, res) => {
   try {
     const currentUser = req.user;
@@ -969,5 +993,8 @@ module.exports = {
   validate,
   uploadEscortGallery,
   getProfile,
-  favouriteUnfavouriteEscort, updateProfile, getFavouriteEscorts
+  favouriteUnfavouriteEscort,
+  updateProfile,
+  getFavouriteEscorts,
+  deleteEscortImage
 };
