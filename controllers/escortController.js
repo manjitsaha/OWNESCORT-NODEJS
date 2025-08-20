@@ -711,7 +711,7 @@ const deleteEscortImage = asyncHandler(async (req, res) => {
 
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    const filename = req.params.fileName;
+    const filename = req.query.fileName;
 
     user.profileImages = user.profileImages.filter(img => img !== filename);
     await user.save();
