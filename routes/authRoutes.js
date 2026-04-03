@@ -157,27 +157,41 @@ const { body, param, check } = require('express-validator');
 const {
   registerUser,
   authUser,
+  requestOtpForSignup,
   requestOtpForLogin,
   loginWithOtp,
   forgotPassword,
   resetPassword,
   updateFcmToken,
-  validate
+  validate,
+  checkExistingUser
 } = require('../controllers/authController');
 const { protect } = require('../middlewares/authMiddleware');
 
 const router = express.Router();
+
+// Check if user exists to decide on login or signup
+router.post(
+  '/check-user',
+  checkExistingUser
+);
+
+// Request OTP for signup
+router.post(
+  '/signup/request-otp',
+  [body('email').isEmail().withMessage('Please include a valid email.')],
+  validate,
+  requestOtpForSignup
+);
 
 // User registration
 router.post(
   '/signup',
   [
     body('name').notEmpty().withMessage('Name is required.'),
-    body('email').isEmail().withMessage('Please include a valid email.'),
-    body('password')
-      .isLength({ min: 6 })
-      .withMessage('Password must be at least 6 characters long.'),
     body('role').isIn(['Customer', 'Escort', 'Broker', 'Admin']).withMessage('Invalid role.'),
+    body('otp').optional().isLength({ min: 6, max: 6 }).withMessage('OTP must be a 6-digit number.').isNumeric().withMessage('OTP must be numeric.'),
+    body('idToken').optional().isString().withMessage('Firebase ID token must be a string.'),
   ],
   validate,
   registerUser
@@ -202,12 +216,13 @@ router.post(
   requestOtpForLogin
 );
 
-// Login with OTP (email only for now)
+// Login with OTP
 router.post(
   '/otp/login',
   [
-    body('email').isEmail().withMessage('Please include a valid email.'),
-    body('otp').isLength({ min: 6, max: 6 }).withMessage('OTP must be a 6-digit number.').isNumeric().withMessage('OTP must be numeric.'),
+    body('email').optional().isEmail().withMessage('Please include a valid email.'),
+    body('otp').optional().isLength({ min: 6, max: 6 }).withMessage('OTP must be a 6-digit number.').isNumeric().withMessage('OTP must be numeric.'),
+    body('idToken').optional().isString().withMessage('Firebase ID token must be a string.'),
   ],
   validate,
   loginWithOtp

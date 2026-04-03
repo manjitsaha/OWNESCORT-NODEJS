@@ -6,6 +6,7 @@ const generateToken = require('../utils/generateToken');
 const sendEmail = require('../utils/sendEmail');
 // const sendSms = require('../utils/sendSms'); // Uncomment if mobile OTP is re-enabled
 const crypto = require('crypto');
+const firebaseAdmin = require('../config/firebase');
 
 // Utility to handle validation errors
 const validate = (req, res, next) => {
@@ -31,33 +32,110 @@ const generateNumericOtp = () => {
 // @route   POST /api/auth/signup
 // @access  Public
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password, role } = req.body; // phoneNumber removed for now
+  const { mobile, name, dob, gender, role, idToken } = req.body; // phoneNumber removed for now
 
-  const userExists = await User.findOne({ email }); // Check by email only for now
+  const userExists = await User.findOne({ phoneNumber: mobile }); // Check by email only for now
 
   if (userExists) {
     res.status(400).json({ message: 'User already exists with this email.' });
     throw new Error('User already exists with this email.');
   }
 
+  // 1. Firebase Authentication Flow
+  if (idToken) {
+    try {
+      const decodedToken = await firebaseAdmin.auth().verifyIdToken(idToken);
+      const { phone_number } = decodedToken;
+
+      // Ensure the firebase user matches the provided email or verify phone
+      if (!phone_number) {
+        res.status(400);
+        throw new Error('Firebase phone auth error.');
+      }
+    } catch (error) {
+      console.error('Firebase token verification error in signup:', error);
+      res.status(401);
+      throw new Error('Invalid or expired Firebase ID token.');
+    }
+  } else {
+    res.status(400);
+    throw new Error('Firebase ID token is required for signup.');
+  }
+
   const user = await User.create({
     name,
-    email,
-    password,
-    role: role || 'Customer',
+    phoneNumber: mobile,
+    dob,
+    gender,
+    role: role,
   });
 
   if (user) {
     res.status(201).json({
       _id: user._id,
       name: user.name,
-      email: user.email,
+      mobile: user.mobile,
+      dob: user.dob,
+      gender: user.gender,
       role: user.role,
       token: generateToken(user._id),
+      message: 'Signup successful.'
     });
   } else {
     res.status(403).json({ message: 'Invalid user data provided.' });
     throw new Error('Invalid user data provided.');
+  }
+});
+
+// @desc    Request OTP for signup
+// @route   POST /api/auth/signup/request-otp
+// @access  Public
+const requestOtpForSignup = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    res.status(400);
+    throw new Error('Email is required to request OTP.');
+  }
+
+  const userExists = await User.findOne({ email });
+  if (userExists) {
+    res.status(400);
+    throw new Error('User already exists with this email.');
+  }
+
+  // Generate OTP
+  const otpCode = generateNumericOtp();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // OTP valid for 10 minutes
+
+  // Invalidate any existing active OTPs for this email and type
+  await Otp.updateMany(
+    { email: email, type: 'signup', isUsed: false, expiresAt: { $gt: Date.now() } },
+    { $set: { isUsed: true } }
+  );
+
+  // Save new OTP to database
+  const otpEntry = await Otp.create({
+    email: email,
+    otp: otpCode,
+    expiresAt: expiresAt,
+    type: 'signup',
+  });
+
+  const message = `Your One-Time Password (OTP) for signup is: <b>${otpCode}</b>. This OTP is valid for 10 minutes.`;
+
+  try {
+    await sendEmail({
+      email: email,
+      subject: 'Your Signup OTP',
+      message: `<b>${message}</b>`,
+    });
+    res.status(200).json({ message: 'OTP sent to your email.' });
+  } catch (error) {
+    await Otp.findByIdAndDelete(otpEntry._id);
+    console.error(`Error sending OTP: ${error.message}`);
+    res.status(500);
+    throw new Error('Failed to send OTP. Please try again.');
   }
 });
 
@@ -145,56 +223,55 @@ const requestOtpForLogin = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    Login with OTP (currently email only)
+// @desc    Login with OTP
 // @route   POST /api/auth/otp/login
 // @access  Public
 const loginWithOtp = asyncHandler(async (req, res) => {
-  const { email, otp, fcmToken } = req.body; // phoneNumber not handled here
+  const { idToken } = req.body;
 
-  let user;
-  if (email) {
-    user = await User.findOne({ email });
+  // 1. Firebase Authentication Flow
+  if (idToken) {
+    try {
+      const decodedToken = await firebaseAdmin.auth().verifyIdToken(idToken);
+      const { phone_number } = decodedToken;
+
+      let user = null;
+      if (phone_number) {
+        user = await User.findOne({ phoneNumber: phone_number });
+      }
+
+
+      if (!user) {
+        res.status(404);
+        throw new Error('User not found with this phone number');
+      }
+
+      if (fcmToken && user.fcmToken !== fcmToken) {
+        user.fcmToken = fcmToken;
+        await user.save();
+      }
+
+      return res.status(200).json({
+        _id: user._id,
+        name: user.name,
+        mobile: user.mobile,
+        dob: user.dob,
+        gender: user.gender,
+        role: user.role,
+        token: generateToken(user._id),
+        message: 'Login successful via Firebase.'
+      });
+    } catch (error) {
+      console.error('Firebase token verification error:', error);
+      res.status(401);
+      throw new Error('Invalid or expired Firebase ID token.');
+    }
   } else {
-    res.status(400);
-    throw new Error('Email is required for OTP login.');
+    return res.status(200).json({
+
+      message: 'Please provide valid info'
+    });
   }
-
-  if (!user) {
-    res.status(404);
-    throw new Error('User not found with this email address.');
-  }
-
-  // Find the most recent active OTP for this user and type
-  const otpEntry = await Otp.findOne({
-    userId: user._id,
-    type: 'login',
-    isUsed: false,
-    expiresAt: { $gt: Date.now() },
-  }).sort({ createdAt: -1 });
-
-  if (!otpEntry || !(await otpEntry.matchOtp(otp))) {
-    res.status(401);
-    throw new Error('Invalid or expired OTP.');
-  }
-
-  // Mark OTP as used
-  otpEntry.isUsed = true;
-  await otpEntry.save();
-
-  // If FCM Token is provided and different, update it
-  if (fcmToken && user.fcmToken !== fcmToken) {
-    user.fcmToken = fcmToken;
-    await user.save();
-  }
-
-  res.status(200).json({
-    _id: user._id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    token: generateToken(user._id),
-    message: 'Login successful via OTP.'
-  });
 });
 
 // @desc    Forgot password (using User model's resetPasswordToken)
@@ -292,13 +369,45 @@ const updateFcmToken = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc    Check if user exists to decide on login or signup
+// @route   POST /api/auth/check-user
+// @access  Public
+const checkExistingUser = asyncHandler(async (req, res) => {
+  const { mobile } = req.body;
+
+  if (!mobile) {
+    res.status(400);
+    throw new Error('Please provide mobile to check.');
+  }
+
+  let userExists = null;
+
+  if (mobile) {
+    userExists = await User.findOne({ mobile });
+  }
+
+  if (userExists) {
+    res.status(200).json({
+      exists: true,
+      message: 'User exists. Proceed to login.'
+    });
+  } else {
+    res.status(200).json({
+      exists: false,
+      message: 'User does not exist. Proceed to signup.'
+    });
+  }
+});
+
 module.exports = {
   registerUser,
   authUser,
   requestOtpForLogin,
+  requestOtpForSignup,
   loginWithOtp,
   forgotPassword,
   resetPassword,
   updateFcmToken,
-  validate
+  validate,
+  checkExistingUser
 };

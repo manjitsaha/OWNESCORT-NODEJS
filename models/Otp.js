@@ -59,8 +59,12 @@ const otpSchema = mongoose.Schema(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      required: true,
+      required: false, // Made optional for signup OTP
       ref: 'User', // Reference to the User model
+    },
+    email: {
+      type: String,
+      required: false, // Stored for signup OTPs
     },
     otp: {
       type: String,
@@ -72,7 +76,7 @@ const otpSchema = mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['login', 'password_reset', 'email_verification'], // Define types of OTP
+      enum: ['login', 'password_reset', 'email_verification', 'signup'], // Added 'signup'
       required: true,
     },
     isUsed: {
