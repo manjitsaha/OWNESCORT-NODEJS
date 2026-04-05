@@ -378,24 +378,6 @@ const getAvailableEscorts = asyncHandler(async (req, res) => {
     query.name = { $regex: name, $options: "i" };
   }
 
-  if (specialService) {
-    const allowedServices = [
-      "private_party",
-      "pool_party",
-      "rave_party",
-      "weekend_party",
-      "clubbing",
-    ];
-    if (!allowedServices.includes(specialService)) {
-      res.status(400);
-      throw new Error(
-        `Invalid special service filter: ${specialService}. Allowed values are: ${allowedServices.join(
-          ", "
-        )}`
-      );
-    }
-    query["specialServices.name"] = specialService;
-  }
 
   // Geospatial query if latitude and longitude are provided
   if (!isNaN(latitude) && !isNaN(longitude)) {
@@ -703,6 +685,28 @@ const uploadEscortGallery = asyncHandler(async (req, res) => {
   }
 });
 
+const uploadEscortProfilePhoto = asyncHandler(async (req, res) => {
+  try {
+    const currentUser = req.user;
+    const user = await User.findById(currentUser._id);
+
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const fileName = req.files.map(file => file.filename);
+
+    user.profilePhoto = fileName;
+    await user.save();
+
+    res.status(200).json({
+      message: 'Images uploaded successfully',
+      profileImages: user.profileImages,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 
 const deleteEscortImage = asyncHandler(async (req, res) => {
   try {
@@ -996,5 +1000,7 @@ module.exports = {
   favouriteUnfavouriteEscort,
   updateProfile,
   getFavouriteEscorts,
-  deleteEscortImage
+  deleteEscortImage,
+  uploadEscortProfilePhoto
+
 };

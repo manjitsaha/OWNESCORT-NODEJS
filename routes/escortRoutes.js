@@ -16,7 +16,8 @@ const {
   favouriteUnfavouriteEscort,
   updateProfile,
   getFavouriteEscorts,
-  deleteEscortImage
+  deleteEscortImage,
+  uploadEscortProfilePhoto
 } = require('../controllers/escortController');
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 
@@ -28,10 +29,10 @@ router.get(
   protect,
   authorizeRoles(['Customer']),
   [
-    query('specialService')
-      .optional()
-      .isIn(['private_party', 'pool_party', 'rave_party', 'weekend_party', 'clubbing'])
-      .withMessage('Invalid special service filter provided.'),
+    // query('specialService')
+    //   .optional()
+    //   .isIn(['private_party', 'pool_party', 'rave_party', 'weekend_party', 'clubbing'])
+    //   .withMessage('Invalid special service filter provided.'),
     query('latitude').optional().isFloat({ min: -90, max: 90 }).withMessage('Latitude must be a number between -90 and 90.'),
     query('longitude').optional().isFloat({ min: -180, max: 180 }).withMessage('Longitude must be a number between -180 and 180.'),
     query('maxDistance').optional().isInt({ min: 0 }).withMessage('Max distance must be a non-negative integer (in meters).'),
@@ -141,6 +142,23 @@ router.post(
   ],
   validate,
   uploadEscortGallery
+);
+
+router.post(
+  '/upload-profile-photo',
+  protect,
+  authorizeRoles(['Escort']),
+  upload.single('profilePhoto'),
+  [
+    body('profilePhoto').custom((value, { req }) => {
+      if (!req.file) {
+        throw new Error('At least one image must be uploaded');
+      }
+      return true;
+    })
+  ],
+  validate,
+  uploadEscortProfilePhoto
 );
 
 router.delete(

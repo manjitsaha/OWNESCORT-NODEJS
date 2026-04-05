@@ -17,7 +17,6 @@ const userSchema = mongoose.Schema(
       type: String,
       unique: true,
       sparse: true,
-      match: [/^\+[1-9]\d{1,14}$/, 'Please fill a valid phone number (E.164 format)'],
     },
 
     bio: {
@@ -27,19 +26,19 @@ const userSchema = mongoose.Schema(
       type: String,
     },
     height: {
-      type: Number,
+      type: String,
     },
     weight: {
-      type: Number,
+      type: String,
     },
     breast: {
-      type: Number,
+      type: String,
     },
     waist: {
-      type: Number,
+      type: String,
     },
     hips: {
-      type: Number,
+      type: String,
     },
     role: {
       type: String,
@@ -118,6 +117,10 @@ const userSchema = mongoose.Schema(
     profileImages: {
       type: [String],
       default: [],
+    },
+    profilePhoto: {
+      type: String,
+      default: "",
     },
     profileVideos: {
       type: [String],

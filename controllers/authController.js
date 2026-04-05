@@ -7,6 +7,7 @@ const sendEmail = require('../utils/sendEmail');
 // const sendSms = require('../utils/sendSms'); // Uncomment if mobile OTP is re-enabled
 const crypto = require('crypto');
 const firebaseAdmin = require('../config/firebase');
+const { log } = require('console');
 
 // Utility to handle validation errors
 const validate = (req, res, next) => {
@@ -32,7 +33,7 @@ const generateNumericOtp = () => {
 // @route   POST /api/auth/signup
 // @access  Public
 const registerUser = asyncHandler(async (req, res) => {
-  const { mobile, name, dob, gender, role, idToken } = req.body; // phoneNumber removed for now
+  const { mobile, name, dob, gender, role, idToken, fcmToken } = req.body; // phoneNumber removed for now
 
   const userExists = await User.findOne({ phoneNumber: mobile }); // Check by email only for now
 
@@ -68,13 +69,14 @@ const registerUser = asyncHandler(async (req, res) => {
     dob,
     gender,
     role: role,
+    fcmToken: fcmToken
   });
 
   if (user) {
     res.status(201).json({
       _id: user._id,
       name: user.name,
-      mobile: user.mobile,
+      mobile: user.phoneNumber,
       dob: user.dob,
       gender: user.gender,
       role: user.role,
@@ -227,13 +229,16 @@ const requestOtpForLogin = asyncHandler(async (req, res) => {
 // @route   POST /api/auth/otp/login
 // @access  Public
 const loginWithOtp = asyncHandler(async (req, res) => {
-  const { idToken } = req.body;
+  const { idToken, fcmToken } = req.body;
 
   // 1. Firebase Authentication Flow
   if (idToken) {
     try {
       const decodedToken = await firebaseAdmin.auth().verifyIdToken(idToken);
-      const { phone_number } = decodedToken;
+      var { phone_number } = decodedToken;
+
+      phone_number = phone_number.replace('+91', '');
+      console.log(`phone_number ${phone_number}`);
 
       let user = null;
       if (phone_number) {
@@ -259,7 +264,7 @@ const loginWithOtp = asyncHandler(async (req, res) => {
         gender: user.gender,
         role: user.role,
         token: generateToken(user._id),
-        message: 'Login successful via Firebase.'
+        message: 'Login successful'
       });
     } catch (error) {
       console.error('Firebase token verification error:', error);
@@ -383,7 +388,7 @@ const checkExistingUser = asyncHandler(async (req, res) => {
   let userExists = null;
 
   if (mobile) {
-    userExists = await User.findOne({ mobile });
+    userExists = await User.findOne({ phoneNumber: mobile });
   }
 
   if (userExists) {
@@ -409,5 +414,5 @@ module.exports = {
   resetPassword,
   updateFcmToken,
   validate,
-  checkExistingUser
+  checkExistingUser,
 };
