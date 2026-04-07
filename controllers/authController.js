@@ -33,7 +33,7 @@ const generateNumericOtp = () => {
 // @route   POST /api/auth/signup
 // @access  Public
 const registerUser = asyncHandler(async (req, res) => {
-  const { mobile, name, dob, gender, role, idToken, fcmToken } = req.body; // phoneNumber removed for now
+  const { mobile, name, dob, gender, role, idToken, fcmToken, desires } = req.body; // phoneNumber removed for now
 
   const userExists = await User.findOne({ phoneNumber: mobile }); // Check by email only for now
 
@@ -69,7 +69,8 @@ const registerUser = asyncHandler(async (req, res) => {
     dob,
     gender,
     role: role,
-    fcmToken: fcmToken
+    fcmToken: fcmToken,
+    desires: desires
   });
 
   if (user) {

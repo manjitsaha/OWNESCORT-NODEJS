@@ -1,24 +1,19 @@
 const express = require('express');
-const { body, param } = require('express-validator');
 const {
     getAllDesires,
+    createDesire,
+    getDesireById,
+    updateDesire,
+    deleteDesire,
     validate
 } = require('../controllers/desiresController');
-const { protect, authorizeRoles } = require('../middlewares/authMiddleware'); // Corrected import
 
 const router = express.Router();
 
-// router.post(
-//     '/',
-//     protect,
-
-//     validate,
-//     createDesire
-// );
-
-router.get(
-    '/',
-    getAllDesires
-);
+router.post('/', validate, createDesire);
+router.get('/', getAllDesires);
+router.get('/:id', getDesireById);
+router.put('/:id', validate, updateDesire);
+router.delete('/:id', deleteDesire);
 
 module.exports = router;

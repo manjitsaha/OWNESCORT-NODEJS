@@ -126,6 +126,10 @@ const userSchema = mongoose.Schema(
       type: [String],
       default: [],
     },
+    desires: {
+      type: String,
+      default: "",
+    },
   },
   {
     timestamps: true,
