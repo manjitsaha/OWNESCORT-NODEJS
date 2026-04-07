@@ -17,6 +17,7 @@ const notificationRoutes = require('./routes/notificationRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const availabilityRoutes = require('./routes/availabilityRoutes');
 const messageRoutes = require('./routes/messageRoutes');
+const desireRoutes = require('./routes/desireRoutes');
 const { notFound, errorHandler } = require('./middlewares/errorMiddleware');
 const helmet = require('helmet');
 const cors = require('cors');
@@ -106,6 +107,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/availability', availabilityRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/desires', desireRoutes);
 
 // Socket.IO Connection and Event Handling
 io.on('connection', (socket) => {
