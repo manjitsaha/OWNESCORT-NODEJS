@@ -130,7 +130,7 @@ router.put(
 router.post(
   '/upload-images',
   protect,
-  authorizeRoles(['Escort']),
+  authorizeRoles(['Escort', 'Customer']),
   upload.array('images', 10),
   [
     body('images').custom((value, { req }) => {
