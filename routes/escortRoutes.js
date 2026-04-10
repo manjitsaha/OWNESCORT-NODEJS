@@ -17,7 +17,9 @@ const {
   updateProfile,
   getFavouriteEscorts,
   deleteEscortImage,
-  uploadEscortProfilePhoto
+  uploadEscortProfilePhoto,
+  incrementViewedCount,
+  incrementLikedCount
 } = require('../controllers/escortController');
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 
@@ -194,6 +196,28 @@ router.delete(
   ],
   validate,
   removeEscortMedia
+);
+
+// NEW ROUTE: Increment viewed count
+router.put(
+  '/:id/view',
+  [
+    param('id').isMongoId().withMessage('Invalid Escort ID.'),
+  ],
+  validate,
+  incrementViewedCount
+);
+
+// NEW ROUTE: Increment liked count
+router.put(
+  '/:id/like',
+  protect,
+  authorizeRoles(['Customer']),
+  [
+    param('id').isMongoId().withMessage('Invalid Escort ID.'),
+  ],
+  validate,
+  incrementLikedCount
 );
 
 module.exports = router;

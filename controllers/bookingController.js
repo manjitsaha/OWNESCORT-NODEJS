@@ -20,7 +20,7 @@ const validate = (req, res, next) => {
 
 // Helper function to generate a numeric OTP (not directly used in booking, but kept for context)
 const generateNumericOtp = () => {
-    return Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+  return Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
 };
 
 
@@ -28,7 +28,7 @@ const generateNumericOtp = () => {
 // @route   POST /api/bookings
 // @access  Private (Customer)
 const createBooking = asyncHandler(async (req, res) => {
-  const { escortId, startTime, endTime, notes } = req.body;
+  const { escortId, startTime, endTime, date, customerLatitude, customerLongitude, artId, notes } = req.body;
   const customerId = req.user._id; // Logged-in customer
 
   const customer = await User.findById(customerId);
@@ -49,8 +49,8 @@ const createBooking = asyncHandler(async (req, res) => {
 
   // Basic date validation
   if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      res.status(400);
-      throw new Error('Invalid start or end time format. Please use ISO 8601 format (e.g., 2025-06-01T10:00:00Z).');
+    res.status(400);
+    throw new Error('Invalid start or end time format. Please use ISO 8601 format (e.g., 2025-06-01T10:00:00Z).');
   }
 
   if (start >= end) {
@@ -97,16 +97,16 @@ const createBooking = asyncHandler(async (req, res) => {
 
   // Simple pricing logic: if duration is 8 hours or more, use daily rate if available and greater than 0
   if (durationInHours >= 8 && escort.dailyRate > 0) {
-      totalPrice = escort.dailyRate;
-      rateTypeUsed = 'daily';
+    totalPrice = escort.dailyRate;
+    rateTypeUsed = 'daily';
   } else {
-      totalPrice = escort.hourlyRate * durationInHours;
-      rateTypeUsed = 'hourly';
+    totalPrice = escort.hourlyRate * durationInHours;
+    rateTypeUsed = 'hourly';
   }
 
   if (totalPrice <= 0) {
-      res.status(400);
-      throw new Error('Escort has invalid rates or booking duration results in zero price. Please check escort rates and booking duration.');
+    res.status(400);
+    throw new Error('Escort has invalid rates or booking duration results in zero price. Please check escort rates and booking duration.');
   }
 
   const booking = await Booking.create({
@@ -133,11 +133,11 @@ const createBooking = asyncHandler(async (req, res) => {
     }
     // Create in-app notification for the escort
     await createInAppNotification(
-        escort._id,
-        'New Booking Request!',
-        `You have a new booking request from ${customer.name} for ${durationInHours.toFixed(2)} hours, starting ${start.toLocaleString()}.`,
-        'booking_request',
-        { bookingId: booking._id.toString() }
+      escort._id,
+      'New Booking Request!',
+      `You have a new booking request from ${customer.name} for ${durationInHours.toFixed(2)} hours, starting ${start.toLocaleString()}.`,
+      'booking_request',
+      { bookingId: booking._id.toString() }
     );
 
     res.status(201).json({
@@ -225,8 +225,8 @@ const updateBookingStatus = asyncHandler(async (req, res) => {
 
   // Prevent changing status of already completed/cancelled bookings (optional, but good)
   if (booking.status === 'Completed' || booking.status === 'Cancelled') {
-      res.status(400);
-      throw new Error(`Cannot change status of a booking that is already ${booking.status}.`);
+    res.status(400);
+    throw new Error(`Cannot change status of a booking that is already ${booking.status}.`);
   }
 
   booking.status = status;
@@ -245,11 +245,11 @@ const updateBookingStatus = asyncHandler(async (req, res) => {
   }
   // Create in-app notification for the customer
   await createInAppNotification(
-      customer._id,
-      'Booking Update!',
-      `Your booking with ${escort.name} has been ${status.toLowerCase()}.`,
-      'booking_status_update',
-      { bookingId: booking._id.toString() }
+    customer._id,
+    'Booking Update!',
+    `Your booking with ${escort.name} has been ${status.toLowerCase()}.`,
+    'booking_status_update',
+    { bookingId: booking._id.toString() }
   );
 
   res.status(200).json(booking);

@@ -130,6 +130,22 @@ const userSchema = mongoose.Schema(
       type: String,
       default: "",
     },
+    internalReview: {
+      type: Number,
+      default: 0,
+    },
+    viewedCount: {
+      type: Number,
+      default: 0,
+    },
+    likedCount: {
+      type: Number,
+      default: 0,
+    },
+    lateNightStatus: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,

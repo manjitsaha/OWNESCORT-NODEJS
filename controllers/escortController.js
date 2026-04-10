@@ -31,6 +31,13 @@ const getAvailableEscorts = asyncHandler(async (req, res) => {
   const longitude = parseFloat(req.query.longitude);
   const maxDistance = parseFloat(req.query.maxDistance) || 10000; // Default 10km
 
+  const spotlight = req.query.spotlight === 'true';
+  const vibe = req.query.vibe === 'true';
+  const trendingThisWeek = req.query.trendingThisWeek === 'true';
+  const worthSliding = req.query.worthSliding === 'true';
+  const lateNight = req.query.lateNight === 'true';
+  const newFace = req.query.newFace === 'true';
+
   if (!req.user) {
     return res.status(401).json({ message: "Unauthorized. User not logged in" });
   }
@@ -68,6 +75,50 @@ const getAvailableEscorts = asyncHandler(async (req, res) => {
     query.numReviews = { $gt: 0 }; // Only show highly rated if they have reviews
   }
 
+  if (trendingThisWeek) {
+    sortOptions = { likedCount: -1 };
+  }
+
+  const uu = req.user;
+  const currentUser = await User.findById(uu._id).select("desires");
+
+  if (vibe) {
+    if (currentUser && currentUser.desires) {
+      const customerDesireIds = currentUser.desires.split(',').map(id => id.trim()).filter(id => id.length === 24);
+      if (customerDesireIds.length > 0) {
+        const regexPatterns = customerDesireIds.map(id => new RegExp(id, 'i'));
+        query.desires = { $in: regexPatterns };
+      } else {
+        query._id = { $exists: false }; // No customer desires, result is empty
+      }
+    } else {
+      query._id = { $exists: false }; // No customer desires, result is empty
+    }
+  }
+
+  if (spotlight) {
+    query.internalReview = { $gte: 8, $lte: 10 };
+  }
+
+  if (worthSliding) {
+    query.hourlyRate = { $gte: 1000 };
+  }
+
+  if (lateNight) {
+    query.lateNightStatus = 1;
+  }
+
+  if (newFace) {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    const endOfMonth = new Date(startOfMonth);
+    endOfMonth.setMonth(startOfMonth.getMonth() + 1);
+    endOfMonth.setDate(0);
+    endOfMonth.setHours(23, 59, 59, 999);
+    query.createdAt = { $gte: startOfMonth, $lte: endOfMonth };
+  }
+
   const count = await User.countDocuments(query);
   let escorts = await User.find(query)
     .limit(pageSize)
@@ -76,10 +127,9 @@ const getAvailableEscorts = asyncHandler(async (req, res) => {
     .select(
       "-password -fcmToken -resetPasswordToken -resetPasswordExpire"
     ); // Exclude sensitive fields
-  const uu = req.user;
-  const currentUser = await User.findById(uu._id).select("favourites");
+
   const favouritesSet = new Set(
-    currentUser.favourites.map((id) => id.toString())
+    (currentUser.favourites || []).map((id) => id.toString())
   );
 
   // Fetch desires info
@@ -678,6 +728,43 @@ const getProfile = asyncHandler(async (req, res) => {
 });
 
 
+const incrementViewedCount = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const escort = await User.findById(id);
+
+  if (!escort || escort.role !== 'Escort') {
+    res.status(404);
+    throw new Error('Escort not found.');
+  }
+
+  escort.viewedCount = (escort.viewedCount || 0) + 1;
+  await escort.save();
+
+  res.status(200).json({
+    message: 'Viewed count incremented',
+    viewedCount: escort.viewedCount
+  });
+});
+
+const incrementLikedCount = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const escort = await User.findById(id);
+
+  if (!escort || escort.role !== 'Escort') {
+    res.status(404);
+    throw new Error('Escort not found.');
+  }
+
+  escort.likedCount = (escort.likedCount || 0) + 1;
+  await escort.save();
+
+  res.status(200).json({
+    message: 'Liked count incremented',
+    likedCount: escort.likedCount
+  });
+});
+
+
 module.exports = {
   getAvailableEscorts,
   toggleAvailability,
@@ -693,6 +780,8 @@ module.exports = {
   updateProfile,
   getFavouriteEscorts,
   deleteEscortImage,
-  uploadEscortProfilePhoto
+  uploadEscortProfilePhoto,
+  incrementViewedCount,
+  incrementLikedCount
 
 };
