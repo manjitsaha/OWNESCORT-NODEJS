@@ -19,6 +19,7 @@ const availabilityRoutes = require('./routes/availabilityRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const desireRoutes = require('./routes/desireRoutes');
 const walletRoutes = require('./routes/walletRoutes');
+const reelRoutes = require('./routes/reelsRoutes');
 const { notFound, errorHandler } = require('./middlewares/errorMiddleware');
 const helmet = require('helmet');
 const cors = require('cors');
@@ -110,6 +111,7 @@ app.use('/api/availability', availabilityRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/desires', desireRoutes);
 app.use('/api/wallet', walletRoutes);
+app.use('/api/reels', reelRoutes);
 
 // Socket.IO Connection and Event Handling
 io.on('connection', (socket) => {
