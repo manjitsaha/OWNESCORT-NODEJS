@@ -48,7 +48,7 @@ const streamReel = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Reel not found' });
     }
 
-    const videoPath = reel.videoUrl;
+    const videoPath = path.join(__dirname, '../uploads/videos', reel.videoUrl);
 
     if (!fs.existsSync(videoPath)) {
       return res.status(404).json({ success: false, message: 'Video file not found' });
