@@ -36,7 +36,7 @@ connectDB(); // Connect to MongoDB
 const app = express();
 const server = http.createServer(app);
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static('uploads'));
 
 
 // Configure Socket.IO
