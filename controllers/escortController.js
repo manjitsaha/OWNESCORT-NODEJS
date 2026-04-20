@@ -538,10 +538,38 @@ const getFavouriteEscorts = asyncHandler(async (req, res) => {
     .sort({ createdAt: -1 }) // default sort (recently added)
     .select("-password -fcmToken -resetPasswordToken -resetPasswordExpire");
 
+  // Fetch desires info
+  const allDesireIds = new Set();
+  escorts.forEach((escort) => {
+    if (escort.desires) {
+      escort.desires.split(",").forEach((id) => {
+        const cleanId = id.trim();
+        if (cleanId && cleanId.length === 24) allDesireIds.add(cleanId);
+      });
+    }
+  });
+
+  const desiresData = await Desire.find({ _id: { $in: Array.from(allDesireIds) } });
+  const desiresMap = {};
+  desiresData.forEach((d) => {
+    desiresMap[d._id.toString()] = d;
+  });
+
   // Mark each escort as favourite (always true here)
   escorts = escorts.map((escort) => {
     const escortObj = escort.toObject();
     escortObj.isFavourite = true;
+
+    if (escortObj.desires) {
+      const desireIdsArr = escortObj.desires
+        .split(",")
+        .map((id) => id.trim())
+        .filter((id) => id && id.length === 24);
+      escortObj.desires = desireIdsArr.map((id) => desiresMap[id]).filter((d) => d);
+    } else {
+      escortObj.desires = [];
+    }
+
     return escortObj;
   });
 
