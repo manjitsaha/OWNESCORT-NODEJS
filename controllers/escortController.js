@@ -132,7 +132,7 @@ const getAvailableEscorts = asyncHandler(async (req, res) => {
     (currentUser.favourites || []).map((id) => id.toString())
   );
 
-  // Fetch desires info
+  // Fetch desires info 
   const allDesireIds = new Set();
   escorts.forEach((escort) => {
     if (escort.desires) {

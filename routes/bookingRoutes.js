@@ -55,11 +55,24 @@ const {
   createBooking,
   getMyBookings,
   updateBookingStatus,
+  getAvailableSlots,
   validate
 } = require('../controllers/bookingController');
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 
 const router = express.Router();
+
+// Get available booking slots
+router.post(
+  '/available-slots',
+  [
+    body('escortId').isMongoId().withMessage('Invalid Escort ID.'),
+    body('date').isISO8601().withMessage('Invalid date format. Use YYYY-MM-DD or ISO 8601.'),
+    body('serviceHours').isNumeric().withMessage('Service hours must be a valid number.'),
+  ],
+  validate,
+  getAvailableSlots
+);
 
 // Create a new booking
 router.post(
@@ -69,7 +82,7 @@ router.post(
   [
     body('escortId').isMongoId().withMessage('Invalid Escort ID.'),
     body('startTime').isISO8601().toDate().withMessage('Invalid start time format. Use ISO 8601.'),
-    body('endTime').isISO8601().toDate().withMessage('Invalid end time format. Use ISO 8601.'),
+    body('serviceHours').isNumeric().withMessage('Service hours must be a valid number.'),
     body('notes').optional().isString().trim().escape().isLength({ max: 500 }).withMessage('Notes must be a string and max 500 characters.'),
   ],
   validate,

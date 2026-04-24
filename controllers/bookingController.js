@@ -28,7 +28,7 @@ const generateNumericOtp = () => {
 // @route   POST /api/bookings
 // @access  Private (Customer)
 const createBooking = asyncHandler(async (req, res) => {
-  const { escortId, startTime, endTime, date, customerLatitude, customerLongitude, artId, notes } = req.body;
+  const { escortId, startTime, serviceHours, notes } = req.body;
   const customerId = req.user._id; // Logged-in customer
 
   const customer = await User.findById(customerId);
@@ -45,18 +45,19 @@ const createBooking = asyncHandler(async (req, res) => {
   }
 
   const start = new Date(startTime);
-  const end = new Date(endTime);
 
-  // Basic date validation
-  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+  // Basic validation
+  if (isNaN(start.getTime())) {
     res.status(400);
-    throw new Error('Invalid start or end time format. Please use ISO 8601 format (e.g., 2025-06-01T10:00:00Z).');
+    throw new Error('Invalid start time format. Please use ISO 8601 format (e.g., 2025-06-01T10:00:00Z).');
   }
 
-  if (start >= end) {
+  if (!serviceHours || isNaN(serviceHours) || serviceHours <= 0) {
     res.status(400);
-    throw new Error('End time must be after start time.');
+    throw new Error('Please provide valid valid serviceHours greater than 0.');
   }
+
+  const end = new Date(start.getTime() + serviceHours * 60 * 60 * 1000);
 
   if (start < new Date()) {
     res.status(400);
@@ -255,9 +256,90 @@ const updateBookingStatus = asyncHandler(async (req, res) => {
   res.status(200).json(booking);
 });
 
+// @desc    Get available booking slots of a specific escort
+// @route   POST /api/bookings/available-slots
+// @access  Public / Private
+const getAvailableSlots = asyncHandler(async (req, res) => {
+  const { escortId, date, serviceHours } = req.body;
+
+  if (!escortId || !date || !serviceHours) {
+    res.status(400);
+    throw new Error('Please provide escortId, date, and serviceHours.');
+  }
+
+  const targetDate = new Date(date);
+  if (isNaN(targetDate.getTime())) {
+    res.status(400);
+    throw new Error('Invalid date format. Please use YYYY-MM-DD or ISO 8601.');
+  }
+
+  if (isNaN(serviceHours) || serviceHours <= 0) {
+    res.status(400);
+    throw new Error('serviceHours must be a valid number greater than 0.');
+  }
+
+  // Define the start and end of the specified date
+  const startOfDay = new Date(targetDate);
+  startOfDay.setUTCHours(0, 0, 0, 0);
+
+  const endOfDay = new Date(targetDate);
+  endOfDay.setUTCHours(23, 59, 59, 999);
+
+  // Fetch all Confirmed and Pending bookings that overlap with this day
+  const existingBookings = await Booking.find({
+    escort: escortId,
+    status: { $in: ['Confirmed', 'Pending'] },
+    $or: [
+      { startTime: { $lte: endOfDay }, endTime: { $gte: startOfDay } }
+    ]
+  });
+
+  const availableSlots = [];
+  const intervalMs = 30 * 60 * 1000; // 30-minute interval slots dynamically generated
+  const serviceMs = serviceHours * 60 * 60 * 1000;
+  const now = new Date();
+
+  let currentSlotStart = new Date(startOfDay);
+
+  while (currentSlotStart < endOfDay) {
+    const currentSlotEnd = new Date(currentSlotStart.getTime() + serviceMs);
+
+    // Ensure we don't suggest past slots
+    if (currentSlotStart > now) {
+      let isOverlapping = false;
+
+      // Check overlap logically for each booking
+      for (const booking of existingBookings) {
+        // If slot start is before booking ends AND slot end is after booking starts
+        if (currentSlotStart < booking.endTime && currentSlotEnd > booking.startTime) {
+          isOverlapping = true;
+          break;
+        }
+      }
+
+      if (!isOverlapping) {
+        availableSlots.push({
+          startTime: new Date(currentSlotStart),
+          endTime: new Date(currentSlotEnd)
+        });
+      }
+    }
+
+    currentSlotStart = new Date(currentSlotStart.getTime() + intervalMs);
+  }
+
+  res.status(200).json({
+    date: startOfDay.toISOString().split('T')[0],
+    escortId,
+    serviceHours,
+    availableSlots
+  });
+});
+
 module.exports = {
   createBooking,
   getMyBookings,
   updateBookingStatus,
+  getAvailableSlots,
   validate
 };

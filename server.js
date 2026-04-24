@@ -12,6 +12,7 @@ const connectDB = require('./config/db');
 const firebaseAdmin = require('./config/firebase');
 const authRoutes = require('./routes/authRoutes');
 const escortRoutes = require('./routes/escortRoutes');
+const customerRoutes = require('./routes/customerRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
@@ -105,6 +106,7 @@ app.use('/api/auth', authLimiter);
 // Routes for REST API
 app.use('/api/auth', authRoutes);
 app.use('/api/escorts', escortRoutes);
+app.use('/api/customers', customerRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/reviews', reviewRoutes);
