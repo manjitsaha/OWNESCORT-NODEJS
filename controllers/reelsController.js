@@ -1,5 +1,6 @@
 const Reel = require('../models/Reel');
 const User = require('../models/User');
+const Desire = require('../models/Desires');
 const fs = require('fs');
 const path = require('path');
 
@@ -109,10 +110,42 @@ const getReelsFeed = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const reels = await Reel.find()
-      .populate('user', 'name profilePic')
+      .populate('user')
       .sort('-createdAt')
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean();
+
+    const allDesireIds = new Set();
+    reels.forEach(reel => {
+      if (reel.user && reel.user.desires && typeof reel.user.desires === 'string') {
+        const desireIdsArr = reel.user.desires
+          .split(',')
+          .map((id) => id.trim())
+          .filter((id) => id && id.length === 24);
+        desireIdsArr.forEach(id => allDesireIds.add(id));
+      }
+    });
+
+    const desiresData = await Desire.find({ _id: { $in: Array.from(allDesireIds) } });
+    const desiresMap = {};
+    desiresData.forEach((d) => {
+      desiresMap[d._id.toString()] = d;
+    });
+
+    reels.forEach(reel => {
+      if (reel.user) {
+        if (reel.user.desires && typeof reel.user.desires === 'string') {
+          const desireIdsArr = reel.user.desires
+            .split(',')
+            .map((id) => id.trim())
+            .filter((id) => id && id.length === 24);
+          reel.user.desires = desireIdsArr.map((id) => desiresMap[id]).filter((d) => d);
+        } else if (!reel.user.desires) {
+          reel.user.desires = [];
+        }
+      }
+    });
 
     const total = await Reel.countDocuments();
 
@@ -135,7 +168,7 @@ const getReelsFeed = async (req, res) => {
 // @desc    Like or Unlike a reel
 // @route   POST /api/reels/:id/like
 // @access  Private
-const likeReel = async (req, res) => {
+const toggleLike = async (req, res) => {
   try {
     const reel = await Reel.findById(req.params.id);
 
@@ -174,5 +207,5 @@ module.exports = {
   uploadReel,
   streamReel,
   getReelsFeed,
-  likeReel,
+  toggleLike,
 };

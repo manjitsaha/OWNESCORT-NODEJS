@@ -40,6 +40,16 @@ const userSchema = mongoose.Schema(
     hips: {
       type: String,
     },
+    profession: {
+      type: String,
+    },
+    religion: {
+      type: String,
+    },
+    personality: {
+      type: String,
+    },
+
     role: {
       type: String,
       required: true,
@@ -145,6 +155,10 @@ const userSchema = mongoose.Schema(
     lateNightStatus: {
       type: Number,
       default: 0,
+    },
+    isVerified: {
+      type: Boolean,
+      default: false,
     },
   },
   {

@@ -29,7 +29,7 @@ const generateNumericOtp = () => {
 // @access  Private (Customer)
 const createBooking = asyncHandler(async (req, res) => {
   const { escortId, startTime, serviceHours, notes } = req.body;
-  const customerId = req.user._id; // Logged-in customer
+  const customerId = req.user._id;
 
   const customer = await User.findById(customerId);
   const escort = await User.findById(escortId);
@@ -125,21 +125,21 @@ const createBooking = asyncHandler(async (req, res) => {
   if (booking) {
     // Send push notification to the escort
     if (escort.fcmToken) {
-      await sendPushNotification(
-        escort.fcmToken,
-        'New Booking Request!',
-        `You have a new booking request from ${customer.name} for ${durationInHours.toFixed(2)} hours, starting ${start.toLocaleString()}.`,
-        { bookingId: booking._id.toString(), type: 'new_booking' }
-      );
+      // await sendPushNotification(
+      //   escort.fcmToken,
+      //   'New Booking Request!',
+      //   `You have a new booking request from ${customer.name} for ${durationInHours.toFixed(2)} hours, starting ${start.toLocaleString()}.`,
+      //   { bookingId: booking._id.toString(), type: 'new_booking' }
+      // );
     }
     // Create in-app notification for the escort
-    await createInAppNotification(
-      escort._id,
-      'New Booking Request!',
-      `You have a new booking request from ${customer.name} for ${durationInHours.toFixed(2)} hours, starting ${start.toLocaleString()}.`,
-      'booking_request',
-      { bookingId: booking._id.toString() }
-    );
+    // await createInAppNotification(
+    //   escort._id,
+    //   'New Booking Request!',
+    //   `You have a new booking request from ${customer.name} for ${durationInHours.toFixed(2)} hours, starting ${start.toLocaleString()}.`,
+    //   'booking_request',
+    //   { bookingId: booking._id.toString() }
+    // );
 
     res.status(201).json({
       message: 'Booking created successfully and is pending confirmation.',
