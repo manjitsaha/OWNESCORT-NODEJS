@@ -25,6 +25,7 @@ const getAvailableEscorts = asyncHandler(async (req, res) => {
   const pageSize = parseInt(req.query.limit) || 10;
   const page = parseInt(req.query.page) || 1;
   const name = req.query.name;
+  const category = req.query.category;
   const specialService = req.query.specialService;
   const sortBy = req.query.sortBy;
   const latitude = parseFloat(req.query.latitude);
@@ -47,6 +48,10 @@ const getAvailableEscorts = asyncHandler(async (req, res) => {
 
   if (name) {
     query.name = { $regex: name, $options: "i" };
+  }
+
+  if (category) {
+    query.category = { $regex: category, $options: "i" };
   }
 
 

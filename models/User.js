@@ -160,6 +160,10 @@ const userSchema = mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    category: {
+      type: String,
+      default: "",
+    },
   },
   {
     timestamps: true,
